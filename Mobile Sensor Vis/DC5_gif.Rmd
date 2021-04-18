@@ -1,0 +1,527 @@
+---
+title: "Mobile Sensors"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+##loading packages
+library(tidyverse)
+library(png)
+library(rgdal)
+library(cartography)
+library(ggpubr)
+library(gganimate)
+library(magick)
+```
+
+
+```{r}
+##reading in sensor data
+# Mobile_sensor <- read.csv("C:/Users/sbapt/Desktop/Smith/DATA CHALLENGES/#5/DC5-Data/Sensor Data and Maps/MobileSensorReadings.csv")
+
+Mobile_sensor <- read.csv("MobileSensorReadings.csv")
+
+##Reading in Image for background
+img <- readPNG("map.png")
+
+##Graph Theme
+theme1 <- theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "grey"), panel.background = element_rect(fill = "white", colour = "white"))
+
+```
+
+##Tidying
+
+```{r}
+Mobile_sensor_06 <- Mobile_sensor %>%
+  filter(grepl('04-06', Timestamp))
+
+Mobile_sensor_07 <- Mobile_sensor %>%
+  filter(grepl('04-07', Timestamp))
+
+Mobile_sensor_08 <- Mobile_sensor %>%
+  filter(grepl('04-08', Timestamp))
+
+Mobile_sensor_09 <- Mobile_sensor %>%
+  filter(grepl('04-09', Timestamp))
+
+Mobile_sensor_10 <- Mobile_sensor %>%
+  filter(grepl('04-10', Timestamp))
+
+```
+
+```{r}
+##APR 06
+
+##Making the hour variable as an int for later grouping & gif creation
+Mobile_sensor_06 <- mutate(Mobile_sensor_06, Date = substring(Mobile_sensor_06$Timestamp, 0, 10))
+Mobile_sensor_06 <- mutate(Mobile_sensor_06, Time = substring(Mobile_sensor_06$Timestamp, 11, 19))
+Mobile_sensor_06 <- mutate(Mobile_sensor_06, hour = substring(Mobile_sensor_06$Time, 0, 3))
+
+Mobile_sensor_06$hour <- as.integer(Mobile_sensor_06$hour)
+
+
+##Rounding the latitude & Longitude measurements to reduce the number of points (Grouping points that are essentially on top of each other anyways)
+Mobile_sensor_06 <- Mobile_sensor_06 %>%
+  mutate(Long_round = format(round(Long, 3), nsmall = 3)) %>%
+  mutate(Lat_round = format(round(Lat, 3), nsmall = 3))
+
+##As int
+Mobile_sensor_06$Long_round <- as.numeric(Mobile_sensor_06$Long_round)
+Mobile_sensor_06$Lat_round <- as.numeric(Mobile_sensor_06$Lat_round)
+
+##sectioning off all readings over 100
+Mobile_sensor_06_top <- Mobile_sensor_06 %>%
+  filter(Value >= 100)
+
+##sectioning off all readings under 100
+Mobile_sensor_06_low <- Mobile_sensor_06 %>%
+  filter(Value < 100)
+
+##Averaging all points within the same longitudinal location, but different hours
+Mobile_sensor_06_low <- Mobile_sensor_06_low %>%
+  group_by(hour, Long_round) %>%
+  mutate(Value_avg = mean(Value)) %>%
+  ungroup()
+
+##Averaging all points within the same lateral location
+Mobile_sensor_06_low <- Mobile_sensor_06_low %>%
+  group_by(hour, Lat_round) %>%
+  mutate(Value_avg_2 = mean(Value)) %>%
+  ungroup()
+
+##Average Value_avg and Value_avg_2 if both lat_round and long_round are unchanging over the range
+Mobile_sensor_06_low <- Mobile_sensor_06_low %>%  
+  group_by(hour, Lat_round, Long_round) %>%
+  mutate(Value_sum = sum(Value), Value_avg_f =(mean(Value))) %>%
+  ungroup()
+
+##Removing repeat values
+Mobile_sensor_06_sm <- Mobile_sensor_06_low %>%
+  select(Timestamp, Long_round, Lat_round, Value_avg_f, hour)
+
+Mobile_sensor_06_sm <- Mobile_sensor_06_sm[!duplicated(Mobile_sensor_06_sm[c("hour","Lat_round","Long_round")]),]
+
+##Graphing the low end avaeraged points with the above 100 outliers on top
+apr_06 <- ggplot(NULL, aes(x = Long_round, y = Lat_round)) +
+  background_image(img) +
+  geom_jitter(data = Mobile_sensor_06_sm, width = 0.01, height = 0.01, alpha = 0.7, aes(color = Value_avg_f)) +
+  theme1 +
+  labs(x="Long", y = "Lat", title = "Mobile Sensor Radiation Readings on April, 06", color = "Avg. cpm") +
+  scale_colour_gradient2(
+    low = "blue",
+    mid = "purple4",
+    high = "red",
+    midpoint = 27.5,
+    limits = c(0,90),
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "color"
+  ) +
+  geom_point(data = Mobile_sensor_06_top, col = "yellow2") +
+  scale_x_continuous(limits = c(-120,-119.711751), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 0.237585), expand = c(0, 0))
+
+apr_06
+```
+
+
+##GIFFERY
+```{r}
+animation_please <- apr_06 +
+## gganimate functionality starts here
+labs(title = "April_06 Hour: {closest_state}") +
+transition_states(hour) +
+ease_aes()
+
+# Run animation  
+animate(animation_please, fps=10, renderer = magick_renderer())
+
+# Save animation
+anim_save("apr_06.gif", animation = last_animation())
+```
+
+
+```{r}
+##APR 07
+##Making the hour variable as an int for later grouping & gif creation
+Mobile_sensor_07 <- mutate(Mobile_sensor_07, Date = substring(Mobile_sensor_07$Timestamp, 0, 10))
+Mobile_sensor_07 <- mutate(Mobile_sensor_07, Time = substring(Mobile_sensor_07$Timestamp, 11, 19))
+Mobile_sensor_07 <- mutate(Mobile_sensor_07, hour = substring(Mobile_sensor_07$Time, 0, 3))
+
+Mobile_sensor_07$hour <- as.integer(Mobile_sensor_07$hour)
+
+
+##Rounding the latitude & Longitude measurements to reduce the number of points (Grouping points that are essentially on top of each other anyways)
+Mobile_sensor_07 <- Mobile_sensor_07 %>%
+  mutate(Long_round = format(round(Long, 3), nsmall = 3)) %>%
+  mutate(Lat_round = format(round(Lat, 3), nsmall = 3))
+
+##As int
+Mobile_sensor_07$Long_round <- as.numeric(Mobile_sensor_07$Long_round)
+Mobile_sensor_07$Lat_round <- as.numeric(Mobile_sensor_07$Lat_round)
+
+##sectioning off all readings over 100
+Mobile_sensor_07_top <- Mobile_sensor_07 %>%
+  filter(Value >= 100)
+
+##sectioning off all readings under 100
+Mobile_sensor_07_low <- Mobile_sensor_07 %>%
+  filter(Value < 100)
+
+##Averaging all points within the same longitudinal location, but different hours
+Mobile_sensor_07_low <- Mobile_sensor_07_low %>%
+  group_by(hour, Long_round) %>%
+  mutate(Value_avg = mean(Value)) %>%
+  ungroup()
+
+##Averaging all points within the same lateral location
+Mobile_sensor_07_low <- Mobile_sensor_07_low %>%
+  group_by(hour, Lat_round) %>%
+  mutate(Value_avg_2 = mean(Value)) %>%
+  ungroup()
+
+##Average Value_avg and Value_avg_2 if both lat_round and long_round are unchanging over the range
+Mobile_sensor_07_low <- Mobile_sensor_07_low %>%  
+  group_by(hour, Lat_round, Long_round) %>%
+  mutate(Value_sum = sum(Value), Value_avg_f =(mean(Value))) %>%
+  ungroup()
+
+##Removing repeat values
+Mobile_sensor_07_sm <- Mobile_sensor_07_low %>%
+  select(Timestamp, Long_round, Lat_round, Value_avg_f, hour)
+
+Mobile_sensor_07_sm <- Mobile_sensor_07_sm[!duplicated(Mobile_sensor_07_sm[c("hour","Lat_round","Long_round")]),]
+
+##Graphing the low end avaeraged points with the above 100 outliers on top
+apr_07 <- ggplot(NULL, aes(x = Long_round, y = Lat_round)) +
+  background_image(img) +
+  geom_jitter(data = Mobile_sensor_07_sm, width = 0.01, height = 0.01, alpha = 0.7, aes(color = Value_avg_f)) +
+  theme1 +
+  labs(x="Long", y = "Lat", title = "Mobile Sensor Radiation Readings on April, 07", color = "Avg. cpm") +
+  scale_colour_gradient2(
+    low = "blue",
+    mid = "purple4",
+    high = "red",
+    midpoint = 27.5,
+    limits = c(0,90),
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "color"
+  ) +
+  geom_point(data = Mobile_sensor_07_top, col = "yellow2") +
+  scale_x_continuous(limits = c(-120,-119.711751), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 0.237585), expand = c(0, 0))
+
+apr_07
+```
+
+
+##GIFFERY
+```{r}
+animation_please <- apr_07 +
+## gganimate functionality starts here
+labs(title = "April_07 Hour: {closest_state}") +
+transition_states(hour) +
+ease_aes()
+
+# Run animation  
+animate(animation_please, fps=10, renderer = magick_renderer())
+
+# Save animation
+anim_save("apr_07.gif", animation = last_animation())
+```
+
+
+```{r}
+##APR 08
+##Making the hour variable as an int for later grouping & gif creation
+Mobile_sensor_08 <- mutate(Mobile_sensor_08, Date = substring(Mobile_sensor_08$Timestamp, 0, 10))
+Mobile_sensor_08 <- mutate(Mobile_sensor_08, Time = substring(Mobile_sensor_08$Timestamp, 11, 19))
+Mobile_sensor_08 <- mutate(Mobile_sensor_08, hour = substring(Mobile_sensor_08$Time, 0, 3))
+
+Mobile_sensor_08$hour <- as.integer(Mobile_sensor_08$hour)
+
+
+##Rounding the latitude & Longitude measurements to reduce the number of points (Grouping points that are essentially on top of each other anyways)
+Mobile_sensor_08 <- Mobile_sensor_08 %>%
+  mutate(Long_round = format(round(Long, 3), nsmall = 3)) %>%
+  mutate(Lat_round = format(round(Lat, 3), nsmall = 3))
+
+##As int
+Mobile_sensor_08$Long_round <- as.numeric(Mobile_sensor_08$Long_round)
+Mobile_sensor_08$Lat_round <- as.numeric(Mobile_sensor_08$Lat_round)
+
+##sectioning off all readings over 100
+Mobile_sensor_08_top <- Mobile_sensor_08 %>%
+  filter(Value >= 100)
+
+##sectioning off all readings under 100
+Mobile_sensor_08_low <- Mobile_sensor_08 %>%
+  filter(Value < 100)
+
+##Averaging all points within the same longitudinal location, but different hours
+Mobile_sensor_08_low <- Mobile_sensor_08_low %>%
+  group_by(hour, Long_round) %>%
+  mutate(Value_avg = mean(Value)) %>%
+  ungroup()
+
+##Averaging all points within the same lateral location
+Mobile_sensor_08_low <- Mobile_sensor_08_low %>%
+  group_by(hour, Lat_round) %>%
+  mutate(Value_avg_2 = mean(Value)) %>%
+  ungroup()
+
+##Average Value_avg and Value_avg_2 if both lat_round and long_round are unchanging over the range
+Mobile_sensor_08_low <- Mobile_sensor_08_low %>%  
+  group_by(hour, Lat_round, Long_round) %>%
+  mutate(Value_sum = sum(Value), Value_avg_f =(mean(Value))) %>%
+  ungroup()
+
+##Removing repeat values
+Mobile_sensor_08_sm <- Mobile_sensor_08_low %>%
+  select(Timestamp, Long_round, Lat_round, Value_avg_f, hour)
+
+Mobile_sensor_08_sm <- Mobile_sensor_08_sm[!duplicated(Mobile_sensor_08_sm[c("hour","Lat_round","Long_round")]),]
+
+##Graphing the low end avaeraged points with the above 100 outliers on top
+apr_08 <- ggplot(NULL, aes(x = Long_round, y = Lat_round)) +
+  background_image(img) +
+  geom_jitter(data = Mobile_sensor_08_sm, width = 0.01, height = 0.01, alpha = 0.7, aes(color = Value_avg_f)) +
+  theme1 +
+  labs(x="Long", y = "Lat", title = "Mobile Sensor Radiation Readings on April, 08", color = "Avg. cpm") +
+  scale_colour_gradient2(
+    low = "blue",
+    mid = "purple4",
+    high = "red",
+    midpoint = 27.5,
+    limits = c(0,90),
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "color"
+  ) +
+  geom_point(data = Mobile_sensor_08_top, col = "yellow2") +
+  scale_x_continuous(limits = c(-120,-119.711751), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 0.237585), expand = c(0, 0))
+
+apr_08
+```
+
+
+##GIFFERY
+```{r}
+animation_please <- apr_08 +
+## gganimate functionality starts here
+labs(title = "April_08 Hour: {closest_state}") +
+transition_states(hour) +
+ease_aes()
+
+# Run animation  
+animate(animation_please, fps=10, renderer = magick_renderer())
+
+# Save animation
+anim_save("apr_08.gif", animation = last_animation())
+```
+
+
+
+```{r}
+##APR 09
+##Making the hour variable as an int for later grouping & gif creation
+Mobile_sensor_09 <- mutate(Mobile_sensor_09, Date = substring(Mobile_sensor_09$Timestamp, 0, 10))
+Mobile_sensor_09 <- mutate(Mobile_sensor_09, Time = substring(Mobile_sensor_09$Timestamp, 11, 19))
+Mobile_sensor_09 <- mutate(Mobile_sensor_09, hour = substring(Mobile_sensor_09$Time, 0, 3))
+
+Mobile_sensor_09$hour <- as.integer(Mobile_sensor_09$hour)
+
+
+##Rounding the latitude & Longitude measurements to reduce the number of points (Grouping points that are essentially on top of each other anyways)
+Mobile_sensor_09 <- Mobile_sensor_09 %>%
+  mutate(Long_round = format(round(Long, 3), nsmall = 3)) %>%
+  mutate(Lat_round = format(round(Lat, 3), nsmall = 3))
+
+##As int
+Mobile_sensor_09$Long_round <- as.numeric(Mobile_sensor_09$Long_round)
+Mobile_sensor_09$Lat_round <- as.numeric(Mobile_sensor_09$Lat_round)
+
+##sectioning off all readings over 100
+Mobile_sensor_09_top <- Mobile_sensor_09 %>%
+  filter(Value >= 100)
+
+##sectioning off all readings under 100
+Mobile_sensor_09_low <- Mobile_sensor_09 %>%
+  filter(Value < 100)
+
+##Averaging all points within the same longitudinal location, but different hours
+Mobile_sensor_09_low <- Mobile_sensor_09_low %>%
+  group_by(hour, Long_round) %>%
+  mutate(Value_avg = mean(Value)) %>%
+  ungroup()
+
+##Averaging all points within the same lateral location
+Mobile_sensor_09_low <- Mobile_sensor_09_low %>%
+  group_by(hour, Lat_round) %>%
+  mutate(Value_avg_2 = mean(Value)) %>%
+  ungroup()
+
+##Average Value_avg and Value_avg_2 if both lat_round and long_round are unchanging over the range
+Mobile_sensor_09_low <- Mobile_sensor_09_low %>%  
+  group_by(hour, Lat_round, Long_round) %>%
+  mutate(Value_sum = sum(Value), Value_avg_f =(mean(Value))) %>%
+  ungroup()
+
+##Removing repeat values
+Mobile_sensor_09_sm <- Mobile_sensor_09_low %>%
+  select(Timestamp, Long_round, Lat_round, Value_avg_f, hour)
+
+Mobile_sensor_09_sm <- Mobile_sensor_09_sm[!duplicated(Mobile_sensor_09_sm[c("hour","Lat_round","Long_round")]),]
+
+##Graphing the low end avaeraged points with the above 100 outliers on top
+apr_09 <- ggplot(NULL, aes(x = Long_round, y = Lat_round)) +
+  background_image(img) +
+  geom_jitter(data = Mobile_sensor_09_sm, width = 0.01, height = 0.01, alpha = 0.7, aes(color = Value_avg_f)) +
+  theme1 +
+  labs(x="Long", y = "Lat", title = "Mobile Sensor Radiation Readings on April, 09", color = "Avg. cpm") +
+  scale_colour_gradient2(
+    low = "blue",
+    mid = "purple4",
+    high = "red",
+    midpoint = 27.5,
+    limits = c(0,90),
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "color"
+  ) +
+  geom_point(data = Mobile_sensor_09_top, col = "yellow2") +
+  scale_x_continuous(limits = c(-120,-119.711751), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 0.237585), expand = c(0, 0))
+
+apr_09
+```
+
+
+##GIFFERY
+```{r}
+animation_please <- apr_09 +
+## gganimate functionality starts here
+labs(title = "April_09 Hour: {closest_state}") +
+transition_states(hour) +
+ease_aes()
+
+# Run animation  
+animate(animation_please, fps=10, renderer = magick_renderer())
+
+# Save animation
+anim_save("apr_09.gif", animation = last_animation())
+```
+
+
+```{r}
+##APR 10
+##Making the hour variable as an int for later grouping & gif creation
+Mobile_sensor_10 <- mutate(Mobile_sensor_10, Date = substring(Mobile_sensor_10$Timestamp, 0, 10))
+Mobile_sensor_10 <- mutate(Mobile_sensor_10, Time = substring(Mobile_sensor_10$Timestamp, 11, 19))
+Mobile_sensor_10 <- mutate(Mobile_sensor_10, hour = substring(Mobile_sensor_10$Time, 0, 3))
+
+Mobile_sensor_10$hour <- as.integer(Mobile_sensor_10$hour)
+
+
+##Rounding the latitude & Longitude measurements to reduce the number of points (Grouping points that are essentially on top of each other anyways)
+Mobile_sensor_10 <- Mobile_sensor_10 %>%
+  mutate(Long_round = format(round(Long, 3), nsmall = 3)) %>%
+  mutate(Lat_round = format(round(Lat, 3), nsmall = 3))
+
+##As int
+Mobile_sensor_10$Long_round <- as.numeric(Mobile_sensor_10$Long_round)
+Mobile_sensor_10$Lat_round <- as.numeric(Mobile_sensor_10$Lat_round)
+
+##sectioning off all readings over 100
+Mobile_sensor_10_top <- Mobile_sensor_10 %>%
+  filter(Value >= 100)
+
+##sectioning off all readings under 100
+Mobile_sensor_10_low <- Mobile_sensor_10 %>%
+  filter(Value < 100)
+
+##Averaging all points within the same longitudinal location, but different hours
+Mobile_sensor_10_low <- Mobile_sensor_10_low %>%
+  group_by(hour, Long_round) %>%
+  mutate(Value_avg = mean(Value)) %>%
+  ungroup()
+
+##Averaging all points within the same lateral location
+Mobile_sensor_10_low <- Mobile_sensor_10_low %>%
+  group_by(hour, Lat_round) %>%
+  mutate(Value_avg_2 = mean(Value)) %>%
+  ungroup()
+
+##Average Value_avg and Value_avg_2 if both lat_round and long_round are unchanging over the range
+Mobile_sensor_10_low <- Mobile_sensor_10_low %>%  
+  group_by(hour, Lat_round, Long_round) %>%
+  mutate(Value_sum = sum(Value), Value_avg_f =(mean(Value))) %>%
+  ungroup()
+
+##Removing repeat values
+Mobile_sensor_10_sm <- Mobile_sensor_10_low %>%
+  select(Timestamp, Long_round, Lat_round, Value_avg_f, hour)
+
+Mobile_sensor_10_sm <- Mobile_sensor_10_sm[!duplicated(Mobile_sensor_10_sm[c("hour","Lat_round","Long_round")]),]
+
+##Graphing the low end avaeraged points with the above 100 outliers on top
+apr_10 <- ggplot(NULL, aes(x = Long_round, y = Lat_round)) +
+  background_image(img) +
+  geom_jitter(data = Mobile_sensor_10_sm, width = 0.01, height = 0.01, alpha = 0.7, aes(color = Value_avg_f)) +
+  theme1 +
+  labs(x="Long", y = "Lat", title = "Mobile Sensor Radiation Readings on April, 10", color = "Avg. cpm") +
+  scale_colour_gradient2(
+    low = "blue",
+    mid = "purple4",
+    high = "red",
+    midpoint = 27.5,
+    limits = c(0,90),
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "color"
+  ) +
+  geom_point(data = Mobile_sensor_10_top, col = "yellow2") +
+  scale_x_continuous(limits = c(-120,-119.711751), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 0.237585), expand = c(0, 0))
+
+apr_10
+```
+
+
+##GIFFERY
+```{r}
+animation_please <- apr_10 +
+## gganimate functionality starts here
+labs(title = "April_10 Hour: {closest_state}") +
+transition_states(hour) +
+ease_aes()
+
+# Run animation  
+animate(animation_please, fps=10, renderer = magick_renderer())
+
+# Save animation
+anim_save("apr_10.gif", animation = last_animation())
+```
+
+
+```{r}
+
+# # Read SHAPEFILE.shp from the current working directory (".")
+# 
+# require(rgdal)
+# shape <- readOGR(dsn = "C:/Users/sbapt/Desktop/Smith/DATA CHALLENGES/#5/DC5-Data/Sensor Data and Maps/StHimarkNeighborhoodShapefiles", layer = "StHimark")
+# 
+# # Use the cartography library to do the choropleth map
+# choroLayer(spdf = shape, df = shape@data, var = "Id")
+# title("neighborhood")
+
+```
